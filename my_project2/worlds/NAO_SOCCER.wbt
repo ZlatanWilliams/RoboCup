@@ -1,0 +1,107 @@
+#VRML_SIM R2023b utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/robotstadium/protos/RobotstadiumSoccerField.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/robots/softbank/nao/protos/Nao.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/balls/protos/RobocupSoccerBall.proto"
+
+WorldInfo {
+}
+Viewpoint {
+  orientation -0.13069200159772484 -0.2502999997263751 0.959306786620087 5.286308853653406
+  position -2.7407439372246514 4.957390382384756 2.0248681989075776
+  follow "NAO"
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+RobotstadiumSoccerField {
+}
+Nao {
+  hidden position_0_0 -8.315731761132609e-12
+  hidden position2_0_0 -7.379833730077613e-09
+  hidden position_0_1 1.7450001219052031
+  hidden position2_0_1 -0.34899986153225326
+  hidden position_0_2 1.7450001218978053
+  hidden position2_0_2 0.34899986202953853
+  hidden position_0_3 -7.505818520964522e-06
+  hidden position_0_4 -7.3360396287056995e-06
+  hidden rotation_18 -0.17180099090005369 0.9745198576271099 -0.14420633348156695 1.7703603654247035
+  hidden position_18_0 1.3959999430856898
+  hidden rotation_19 1 0 0 1.3959999430856898
+  hidden position_19_0 1.3959998372740776
+  hidden rotation_20 0 0 1 1.3959998372740776
+  hidden position_20_0 0.003993875828380185
+  hidden rotation_21 1 0 0 0.003993875828409357
+  hidden position_21_0 4.391729633763001e-10
+  hidden position_21_1 4.3972376740453425e-10
+  hidden position_21_2 -1.1716400581809888e-10
+  hidden rotation_22 0 1 0 0.9599999995608273
+  hidden position_22_0 4.404178782764121e-10
+  hidden rotation_23 0 1 0 0.9599999992322548
+  hidden position_23_0 8.118830187205053e-11
+  hidden rotation_24 0 0.9999999999999999 0 0.959999999866514
+  hidden rotation_25 0 1 0 0.9599999995602763
+  hidden position_25_0 4.4039008210634653e-10
+  hidden rotation_26 0 0.9999999999999999 0 0.9599999992322831
+  hidden position_26_0 2.5883600162200686e-11
+  hidden rotation_27 0 1 0 0.9599999999211188
+  hidden position_28_0 1.0845742645097991e-10
+  hidden rotation_29 0 -1 0 0.9599999998114932
+  hidden rotation_30 0.1718009911372951 0.9745198575556582 0.14420633368178587 1.770360365489206
+  hidden position_30_0 -1.3959999433049892
+  hidden rotation_31 -1 0 0 1.3959999433049892
+  hidden position_31_0 -1.395999837175347
+  hidden rotation_32 0 0 -1 1.395999837175347
+  hidden position_32_0 0.003994064201431463
+  hidden rotation_33 1 0 0 0.0039940642013837355
+  hidden position_33_0 4.560507122296782e-10
+  hidden position_33_1 4.561035769794976e-10
+  hidden position_33_2 7.179526255601755e-11
+  hidden rotation_34 0 1 0 0.9599999995439497
+  hidden position_34_0 2.18234133873921e-10
+  hidden rotation_35 0 1 0 0.9599999996770193
+  hidden position_35_0 -3.3616229626794284e-11
+  hidden rotation_36 0 1 0 0.9600000000400306
+  hidden rotation_37 0 1 0 0.9599999995438967
+  hidden position_37_0 2.1825069382227512e-10
+  hidden rotation_38 0 1 0 0.9599999996769992
+  hidden position_38_0 2.2475384023188978e-11
+  hidden position_40_0 4.932755832580726e-11
+  hidden rotation_41 0 -1 0 0.959999999874172
+  hidden rotation_42 0 -0.7071067811865475 -0.7071067811865475 7.5058082284085214e-06
+  hidden position_42_0 -0.020003135413108275
+  hidden rotation_43 -1 0 0 0.02000313541309801
+  hidden position_43_0 -0.5230008535732168
+  hidden rotation_44 0 -1 0 0.5230008535732171
+  hidden position_44_0 1.047000312554742
+  hidden rotation_45 0 1 0 1.0470003125547418
+  hidden position_45_0 -0.5230004282583447
+  hidden rotation_46 0 -1 0 0.5230004282583446
+  hidden position_46_0 0.019999258605871602
+  hidden rotation_47 1 0 0 0.019999258605871803
+  hidden translation_48 0.020006973785335426 -0.007028494106017115 -0.040798800302185884
+  hidden rotation_48 1.1952362234542903e-06 3.412480840137705e-07 0.9999999999992276 -3.1415856352102844
+  hidden rotation_52 0 -0.7071067811865475 0.7071067811865475 7.336034009255275e-06
+  hidden position_52_0 -0.019996943729787116
+  hidden rotation_53 -1 0 0 0.019996943729781738
+  hidden position_53_0 -0.5229992669852631
+  hidden rotation_54 0 -1 0 0.5229992669852628
+  hidden position_54_0 1.047001364919256
+  hidden rotation_55 0 1 0 1.0470013649192562
+  hidden position_55_0 -0.5230001327742873
+  hidden rotation_56 0 -1 0 0.5230001327742871
+  hidden position_56_0 0.02000082187324134
+  hidden rotation_57 1 0 0 0.020000821873248233
+  hidden translation_58 0.019994289693135308 0.007028450313573492 -0.040796727277082105
+  hidden rotation_58 1.226140562548109e-06 -3.853585400562695e-07 0.9999999999991742 -3.1415856686167394
+  translation -0.003391107770066593 0.1195457677470344 0.3052368727444058
+  rotation -0.007466147574057573 -0.03358793043946839 0.999407878480651 0.07432619479164558
+  controller "nao_soccer"
+}
+RobocupSoccerBall {
+  translation -0.592875921114558 -0.04638177678851548 0.06967823198025022
+  rotation 0.08769467465310697 -0.9943420357773528 0.05994630867397444 1.493169822990346
+}
