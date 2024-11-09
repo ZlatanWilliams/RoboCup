@@ -51,4 +51,5 @@ git pull                             # fetch the latest codes of the main branch
 git checkout <your_branch_name>      # change current branch to your branch
 git merge main                       # merge the codes in the main branch to your branch
 ```
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; These steps could work when there are no conflicts between your branch with the main branch. If conflicts occur, solve them first.
+> These steps could work when there are no conflicts between your branch with the main branch. If conflicts occur, solve them first.
+5. You can delete your branch after you merge all the modifications to the main branch.
