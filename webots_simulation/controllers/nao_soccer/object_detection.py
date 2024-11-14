@@ -1,14 +1,35 @@
+# Import necessary libraries
 from controller import Robot, Keyboard, Motion
-import torch
-from PIL import Image
-import numpy as np
+import math
 import cv2
+import numpy as np
 from ultralytics import YOLO
+import time
 
-class Nao (Robot):
-    PHALANX_MAX = 8 
-        
-    # load motion files
+# Define PID Controller class for smooth head movement
+class PIDController:
+    """Simple PID controller for smooth head movement"""
+    def __init__(self, kp=1.0, ki=0.0, kd=0.0):
+        self.kp = kp
+        self.ki = ki
+        self.kd = kd
+        self.prev_error = 0
+        self.integral = 0
+    
+    def update(self, error):
+        self.integral += error
+        derivative = error - self.prev_error
+        output = (self.kp * error + 
+                 self.ki * self.integral + 
+                 self.kd * derivative)
+        self.prev_error = error
+        return output
+
+# Define the main Nao robot class
+class Nao(Robot):
+    PHALANX_MAX = 8
+
+    # Load motion files
     def loadMotionFiles(self):
         self.StandInit = Motion('../../motions/StandInit.motion')
         self.handWave = Motion('../../motions/HandWave.motion')
@@ -38,27 +59,24 @@ class Nao (Robot):
         self.StandUpFromBack = Motion('../../motions/StandUpFromBack.motion')
         self.StandUpFromFront = Motion('../../motions/StandUpFromFront.motion')
         self.OpenArms = Motion('../../motions/OpenArms.motion')
-        self.Shake = Motion('../../motions/ShakeHead.motion')
-        self.Run = Motion('../../motions/Run.motion')
 
     def startMotion(self, motion):
-        # interrupt current motion
-        if self.currentlyPlaying:
+        # Interrupt current motion
+        if self.currentlyPlaying is not None and not self.currentlyPlaying.isOver():
             self.currentlyPlaying.stop()
-
-        # start new motion
+        # Start new motion
         motion.play()
         self.currentlyPlaying = motion
 
-    # the accelerometer axes are oriented as on the real robot
-    # however the sign of the returned values may be opposite
+    # The accelerometer axes are oriented as on the real robot
+    # However, the sign of the returned values may be opposite
     def printAcceleration(self):
         acc = self.accelerometer.getValues()
         print('----------accelerometer----------')
         print('acceleration: [ x y z ] = [%f %f %f]' % (acc[0], acc[1], acc[2]))
 
-    # the gyro axes are oriented as on the real robot
-    # however the sign of the returned values may be opposite
+    # The gyro axes are oriented as on the real robot
+    # However, the sign of the returned values may be opposite
     def printGyro(self):
         vel = self.gyro.getValues()
         print('----------gyro----------')
@@ -70,7 +88,7 @@ class Nao (Robot):
         print('----------gps----------')
         print('position: [ x y z ] = [%f %f %f]' % (p[0], p[1], p[2]))
 
-    # the InertialUnit roll/pitch angles are equal to naoqi's AngleX/AngleY
+    # The InertialUnit roll/pitch angles are equal to naoqi's AngleX/AngleY
     def printInertialUnit(self):
         rpy = self.inertialUnit.getRollPitchYaw()
         print('----------inertial unit----------')
@@ -176,16 +194,44 @@ class Nao (Robot):
 
     def setHandsAngle(self, angle):
         for i in range(0, self.PHALANX_MAX):
-            clampedAngle = angle
-            if clampedAngle > self.maxPhalanxMotorPosition[i]:
-                clampedAngle = self.maxPhalanxMotorPosition[i]
-            elif clampedAngle < self.minPhalanxMotorPosition[i]:
-                clampedAngle = self.minPhalanxMotorPosition[i]
+            # Get motor min and max position
+            minPosition = self.minPhalanxMotorPosition[i]
+            maxPosition = self.maxPhalanxMotorPosition[i]
 
-            if len(self.rphalanx) > i and self.rphalanx[i] is not None:
+            # Ensure min position is non-negative
+            if minPosition < 0:
+                minPosition = 0.0
+
+            # Clamp angle within min and max positions
+            clampedAngle = max(min(angle, maxPosition), minPosition)
+
+            if self.rphalanx[i] is not None:
                 self.rphalanx[i].setPosition(clampedAngle)
-            if len(self.lphalanx) > i and self.lphalanx[i] is not None:
+            if self.lphalanx[i] is not None:
                 self.lphalanx[i].setPosition(clampedAngle)
+
+    def printHelp(self):
+        print('----------nao_demo_python----------')
+        print('Use the keyboard to control the robot')
+        print('(The 3D window needs to be focused)')
+        print('[Up][Down]: move one step forward/backwards')
+        print('[<-][->]: side step left/right')
+        print('[Shift] + [<-][->]: turn left/right')
+        print('[U]: print ultrasound sensors')
+        print('[A]: print accelerometers')
+        print('[G]: print gyros')
+        print('[S]: print gps')
+        print('[I]: print inertial unit (roll/pitch/yaw)')
+        print('[F]: print foot sensors')
+        print('[B]: print foot bumpers')
+        print('[Home][End]: print scaled top/bottom camera image')
+        print('[PageUp][PageDown]: open/close hands')
+        print('[7][8][9]: change all leds RGB color')
+        print('[0]: turn all leds off')
+        print('[T]: perform Tai chi movements')
+        print('[W]: wipe its forehead')
+        print('[H]: print this help message')
+        print('[L]: toggle ball tracking')
 
     def findAndEnableDevices(self):
         # get the time step of the current world.
@@ -196,6 +242,13 @@ class Nao (Robot):
         self.cameraBottom = self.getDevice("CameraBottom")
         self.cameraTop.enable(4 * self.timeStep)
         self.cameraBottom.enable(4 * self.timeStep)
+        # Current active camera
+        self.active_camera = 'top'
+
+        # Get camera dimensions
+        self.width = self.cameraTop.getWidth()
+        self.height = self.cameraTop.getHeight()
+        print(f"Camera dimensions: {self.width}x{self.height}")
 
         # accelerometer
         self.accelerometer = self.getDevice('accelerometer')
@@ -237,7 +290,7 @@ class Nao (Robot):
         self.rfootlbumper.enable(self.timeStep)
         self.rfootrbumper.enable(self.timeStep)
 
-        # there are 7 controlable LED groups in Webots
+        # there are 7 controllable LED groups in Webots
         self.leds = []
         self.leds.append(self.getDevice('ChestBoard/Led'))
         self.leds.append(self.getDevice('RFoot/Led'))
@@ -248,108 +301,183 @@ class Nao (Robot):
         self.leds.append(self.getDevice('Ears/Led/Left'))
 
         # get phalanx motor tags
-        # the real Nao has only 2 motors for RHand/LHand
-        # but in Webots we must implement RHand/LHand with 2x8 motors
         self.lphalanx = []
         self.rphalanx = []
         self.maxPhalanxMotorPosition = []
         self.minPhalanxMotorPosition = []
         for i in range(0, self.PHALANX_MAX):
-            self.lphalanx.append(self.getDevice("LPhalanx%d" % (i + 1)))
-            self.rphalanx.append(self.getDevice("RPhalanx%d" % (i + 1)))
+            l_motor = self.getDevice("LPhalanx%d" % (i + 1))
+            r_motor = self.getDevice("RPhalanx%d" % (i + 1))
+            self.lphalanx.append(l_motor)
+            self.rphalanx.append(r_motor)
 
-            # assume right and left hands have the same motor position bounds
-            self.maxPhalanxMotorPosition.append(self.rphalanx[i].getMaxPosition())
-            self.minPhalanxMotorPosition.append(self.rphalanx[i].getMinPosition())
+            if r_motor is not None:
+                maxPos = r_motor.getMaxPosition()
+                minPos = r_motor.getMinPosition()
+                # Ensure min position is non-negative
+                if minPos < 0:
+                    minPos = 0.0
+                self.maxPhalanxMotorPosition.append(maxPos)
+                self.minPhalanxMotorPosition.append(minPos)
+            else:
+                self.maxPhalanxMotorPosition.append(0.0)
+                self.minPhalanxMotorPosition.append(0.0)
 
         # shoulder pitch motors
         self.RShoulderPitch = self.getDevice("RShoulderPitch")
         self.LShoulderPitch = self.getDevice("LShoulderPitch")
 
+        # Head motor setup
+        self.head_yaw = self.getDevice('HeadYaw')
+        self.head_pitch = self.getDevice('HeadPitch')
+        self.position_yaw_sensor = self.head_yaw.getPositionSensor()
+        self.position_yaw_sensor.enable(self.timeStep)
+        self.position_pitch_sensor = self.head_pitch.getPositionSensor()
+        self.position_pitch_sensor.enable(self.timeStep)
+        # Enable position control for head motors
+        self.head_yaw.setPosition(0.0)
+        self.head_pitch.setPosition(0.0)
+
+        # Get motor limits
+        self.max_yaw = self.head_yaw.getMaxPosition()
+        self.min_yaw = self.head_yaw.getMinPosition()
+        self.max_pitch = self.head_pitch.getMaxPosition()
+        self.min_pitch = self.head_pitch.getMinPosition()
+
+        # PID control parameters
+        self.yaw_pid = PIDController(kp=0.5, ki=0.1, kd=0.05)
+        self.pitch_pid = PIDController(kp=0.5, ki=0.1, kd=0.05)
+
+        # Load YOLO model
+        self.model = YOLO('yolov8n.pt')
+
+        # Processing parameters
+        self.process_every_n_frames = 3
+        self.frame_counter = 0
+
+        # Ball tracking state
+        self.last_ball_position = None
+        self.ball_detected = False
+        self.lost_ball_counter = 0
+        self.max_lost_frames = 10
+        self.ball_class_id = 32  # Class ID for sports ball in COCO dataset
+
         # keyboard
         self.keyboard = self.getKeyboard()
         self.keyboard.enable(10 * self.timeStep)
-        
-      
-    
 
     def __init__(self):
         Robot.__init__(self)
-        self.currentlyPlaying = False
-
-        # initialize stuff
+        self.currentlyPlaying = None
+        self.ballTrackingEnabled = False  # Variable to control ball tracking
+        # Initialize devices and motions
         self.findAndEnableDevices()
         self.loadMotionFiles()
-        self.time_step = 32
-        self.current_angle = 0
-        
-        self.yolo_model = YOLO("C:/Users/82487/Desktop/my_project2/model/yolov8n.pt")  # 使用上传的模型文件路径
-        print("YOLOv8 model loaded successfully.")
-        
-        self.camera = self.getDevice('CameraTop')
-        self.camera.enable(4 * self.timeStep)
-    
-    def get_image_from_camera(self):
-        # 获取摄像头图像
-        image = self.camera.getImage()
-        width = self.camera.getWidth()
-        height = self.camera.getHeight()
+        self.printHelp()
 
-        # 转换图像格式
-        image_array = np.frombuffer(image, np.uint8).reshape((height, width, 4))
-        image_rgb = cv2.cvtColor(image_array, cv2.COLOR_BGRA2RGB)
-        return image_rgb
+    # Method to get image from current active camera
+    def get_camera_image(self):
+        camera = self.cameraTop if self.active_camera == 'top' else self.cameraBottom
+        image_data = camera.getImage()
+        image = np.frombuffer(image_data, np.uint8).reshape((self.height, self.width, 4))
+        image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+        # Resize for processing
+        target_width = 160
+        target_height = 120
+        image = cv2.resize(image, (target_width, target_height))
+        return image
 
-    def detect_objects(self):
-        image = self.get_image_from_camera()
-        resized_image = cv2.resize(image, (640, 640))
-        
-        results = self.yolo_model(resized_image)
-        print(results)
-     
-        for box in results [0].boxes:
-            # 获取类别 ID
-                class_id = int(box.cls[0])  # 类别索引
-                class_name = self.yolo_model.names[class_id]  # 类别名称
-            
-            # 检查类别是否为“sports ball”
-                if class_name == "sports ball":
-                # 获取边界框坐标
-                    x_min, y_min, x_max, y_max = box.xyxy[0]  # 边界框坐标
-                    box_width = x_max - x_min
-                    box_height = y_max - y_min
-                    x_center = (x_min + x_max) / 2  # 计算足球的中心点
+    # Method to switch between top and bottom cameras based on ball position
+    def switch_camera(self):
+        if not self.ball_detected:
+            return
+        # Get normalized y position (0 at top, 1 at bottom)
+        _, y = self.last_ball_position
+        norm_y = y / self.height
+        # Switch camera based on ball position
+        if self.active_camera == 'top' and norm_y > 0.8:
+            self.active_camera = 'bottom'
+            print("Switching to bottom camera")
+        elif self.active_camera == 'bottom' and norm_y < 0.2:
+            self.active_camera = 'top'
+            print("Switching to top camera")
 
-                print(f"Sports ball detected at center: ({x_center})")
-                
-                if self.is_close_to_ball(box_width, box_height):
-                    print("Close to the ball, stopping.")
-                    self.StandInit.play()  # 播放站立初始化动作
-                else:
-                    print("Moving forward towards the ball.")
-                    self.move_towards_ball(x_center)  # 持续前进动作
-                break
-        
-    def move_towards_ball(self, x):
-        width = self.camera.getWidth()
+    # Method to update head position to track the ball
+    def update_head_position(self):
+        if not self.ball_detected:
+            self.lost_ball_counter += 1
+            if self.lost_ball_counter > self.max_lost_frames:
+                # Return head to center position if ball is lost
+                self.head_yaw.setPosition(0.0)
+                self.head_pitch.setPosition(0.0)
+            return
 
-        # 判断“sports ball”在图像的中心偏左或偏右
-        # if x < width * 0.4:  # 偏左
-            # print("Turning left")
-            # self.startMotion(self.turnLeft10)
-        # elif x > width * 0.6:  # 偏右
-            # print("Turning right")
-            # self.startMotion(self.turnRight10)
-        # else:  # 在图像中心，向前移动
-        print("Moving forward")
-        self.startMotion(self.forwards50)
-            
-    def is_close_to_ball(self, width, height):
-        # 设置一个阈值来判断是否接近足球，这个值可以根据实际情况调整
-        print(f"wh: ({width * height})")
-        size_threshold = 8000 # 假设当边界框面积大于此阈值时，表示接近足球
-        return width * height >= size_threshold
-            
+        self.lost_ball_counter = 0
+
+        # Get normalized ball position (-1 to 1)
+        x, y = self.last_ball_position
+        norm_x = (x / self.width * 2) - 1
+        norm_y = (y / self.height * 2) - 1
+
+        # Calculate desired head positions using PID
+        current_yaw = self.position_yaw_sensor.getValue()
+        current_pitch = self.position_pitch_sensor.getValue()
+
+        # Update yaw (horizontal)
+        yaw_error = -norm_x  # Negative because positive yaw is left
+        new_yaw = current_yaw + self.yaw_pid.update(yaw_error)
+        new_yaw = np.clip(new_yaw, self.min_yaw, self.max_yaw)
+
+        # Update pitch (vertical)
+        pitch_error = norm_y
+        new_pitch = current_pitch + self.pitch_pid.update(pitch_error)
+        new_pitch = np.clip(new_pitch, self.min_pitch, self.max_pitch)
+
+        # Set new positions
+        self.head_yaw.setPosition(new_yaw)
+        self.head_pitch.setPosition(new_pitch)
+
+        print(f"Head position - Yaw: {new_yaw:.2f}, Pitch: {new_pitch:.2f}")
+
+    # Method to process ball detections and update tracking state
+    def process_ball_detection(self, detections, image):
+        annotated_image = image.copy()
+        self.ball_detected = False
+
+        if len(detections) == 0:
+            print("No ball detected")
+            return annotated_image
+
+        for detection in detections:
+            boxes = detection.boxes.cpu().numpy()
+            for box in boxes:
+                class_id = int(box.cls[0])
+                if class_id == self.ball_class_id:
+                    confidence = box.conf[0]
+                    if confidence < 0.5:
+                        continue
+
+                    x1, y1, x2, y2 = box.xyxy[0].astype(int)
+                    center_x = (x1 + x2) // 2
+                    center_y = (y1 + y2) // 2
+
+                    self.last_ball_position = (center_x, center_y)
+                    self.ball_detected = True
+
+                    # Draw detection visualization
+                    cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    cv2.circle(annotated_image, (center_x, center_y), 2, (0, 0, 255), -1)
+                    label = f'Ball {confidence:.2%}'
+                    cv2.putText(annotated_image, label, (x1, y1 - 5),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+                    # Draw active camera indicator
+                    camera_text = f"Camera: {self.active_camera.upper()}"
+                    cv2.putText(annotated_image, camera_text, (5, 15),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+        return annotated_image
+
+    # Main loop
     def run(self):
         self.StandInit.setLoop(True)
         self.StandInit.play()
@@ -357,7 +485,7 @@ class Nao (Robot):
 
         # until a key is pressed
         key = -1
-        while robot.step(self.timeStep) != -1:
+        while self.step(self.timeStep) != -1:
             key = self.keyboard.getKey()
             if key > 0:
                 break
@@ -375,10 +503,10 @@ class Nao (Robot):
                 self.startMotion(self.forwards50)
             elif key == Keyboard.DOWN:
                 self.startMotion(self.backwards)
-            elif key == Keyboard.LEFT | Keyboard.SHIFT:
-                self.startMotion(self.turnLeft60)
-            elif key == Keyboard.RIGHT | Keyboard.SHIFT:
-                self.startMotion(self.turnRight60)
+            elif key == (Keyboard.LEFT | Keyboard.SHIFT):
+                self.startMotion(self.turnLeft10v2)
+            elif key == (Keyboard.RIGHT | Keyboard.SHIFT):
+                self.startMotion(self.turnRight10v2)
             elif key == ord('A'):
                 self.printAcceleration()
             elif key == ord('G'):
@@ -405,8 +533,6 @@ class Nao (Robot):
                 self.startMotion(self.StandUpFromBack)
             elif key == ord('M'):
                 self.startMotion(self.StandUpFromFront)
-            elif key == ord('R'):
-                self.startMotion(self.Run)
             elif key == Keyboard.HOME:
                 self.printCameraImage(self.cameraTop)
             elif key == Keyboard.END:
@@ -418,7 +544,7 @@ class Nao (Robot):
             elif key == ord('1'):
                 self.startMotion(self.RightShoot)
             elif key == ord('2'):
-                self.detect_objects()
+                self.startMotion(self.forwardsSprint)
             elif key == ord('3'):
                 self.startMotion(self.forwards)
             elif key == ord('4'):
@@ -426,7 +552,7 @@ class Nao (Robot):
             elif key == ord('5'):
                 self.startMotion(self.OpenArms)
             elif key == ord('6'):
-                self.startMotion(self.Shake)
+                self.startMotion(self.turnRight60)
             elif key == ord('7'):
                 self.setAllLedsColor(0xff0000)  # red
             elif key == ord('8'):
@@ -434,14 +560,57 @@ class Nao (Robot):
             elif key == ord('9'):
                 self.setAllLedsColor(0x0000ff)  # blue
             elif key == ord('0'):
-                self.StandInit# off
+                self.setAllLedsColor(0x000000)  # off
             elif key == ord('H'):
                 self.printHelp()
+            elif key == ord('L'):
+                self.ballTrackingEnabled = not self.ballTrackingEnabled
+                if self.ballTrackingEnabled:
+                    print('Ball tracking enabled')
+                else:
+                    print('Ball tracking disabled')
+            elif key == ord('Z'):
+                # Show top camera view (for debugging)
+                image = self.get_camera_image()
+                cv2.imshow("Top Camera View", image)
+                cv2.waitKey(1)
+            elif key == ord('X'):
+                # Switch to bottom camera and show view
+                self.active_camera = 'bottom'
+                image = self.get_camera_image()
+                cv2.imshow("Bottom Camera View", image)
+                cv2.waitKey(1)
 
-            if robot.step(self.timeStep) == -1:
+            # Ball tracking logic
+            if self.ballTrackingEnabled:
+                self.frame_counter += 1
+                if self.frame_counter % self.process_every_n_frames != 0:
+                    if self.step(self.timeStep) == -1:
+                        break
+                    continue
+
+                # Get camera image
+                image = self.get_camera_image()
+
+                # Run detection
+                results = self.model.predict(image, classes=[self.ball_class_id], max_det=1)
+
+                # Process detections
+                annotated_image = self.process_ball_detection(results, image)
+
+                # Update head tracking
+                self.update_head_position()
+
+                # Check if we need to switch cameras
+                self.switch_camera()
+
+                # Display results (optional)
+                cv2.imshow("Ball Tracking", annotated_image)
+                cv2.waitKey(1)
+
+            if self.step(self.timeStep) == -1:
                 break
 
-
-# create the Robot instance and run main loop
+# Create the Robot instance and run main loop
 robot = Nao()
 robot.run()

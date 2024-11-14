@@ -1,45 +1,38 @@
+# Copyright 1996-2023 Cyberbotics Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Example of Python controller for Nao robot.
+   This demonstrates how to access sensors and actuators"""
+
 from controller import Robot, Keyboard, Motion
-import torch
-from PIL import Image
-import numpy as np
-import cv2
-from ultralytics import YOLO
+
 
 class Nao (Robot):
-    PHALANX_MAX = 8 
-        
+    PHALANX_MAX = 8
+
     # load motion files
     def loadMotionFiles(self):
-        self.StandInit = Motion('../../motions/StandInit.motion')
         self.handWave = Motion('../../motions/HandWave.motion')
-        self.forwards = Motion('../../motions/Forwards.motion')
-        self.forwards50 = Motion('../../motions/Forwards50.motion')
-        self.forwardsSprint = Motion('../../motions/ForwardsSprint.motion')
+        self.forwards = Motion('../../motions/Forwards50.motion')
         self.backwards = Motion('../../motions/Backwards.motion')
         self.sideStepLeft = Motion('../../motions/SideStepLeft.motion')
         self.sideStepRight = Motion('../../motions/SideStepRight.motion')
-        self.SidePass_Left = Motion('../../motions/SidePass_Left.motion')
-        self.SidePass_Right = Motion('../../motions/SidePass_Right.motion')
-        self.turnLeft10 = Motion('../../motions/TurnLeft10.motion')
-        self.turnLeft10v2 = Motion('../../motions/TurnLeft10_V2.motion')
-        self.turnLeft20 = Motion('../../motions/TurnLeft20.motion')
-        self.turnLeft30 = Motion('../../motions/TurnLeft30.motion')
-        self.turnLeft40 = Motion('../../motions/TurnLeft40.motion')
         self.turnLeft60 = Motion('../../motions/TurnLeft60.motion')
-        self.turnLeft180 = Motion('../../motions/TurnLeft180.motion')
-        self.turnRight10 = Motion('../../motions/TurnRight10.motion')
-        self.turnRight10v2 = Motion('../../motions/TurnRight10_V2.motion')
-        self.turnRight40 = Motion('../../motions/TurnRight40.motion')
         self.turnRight60 = Motion('../../motions/TurnRight60.motion')
-        self.Shoot = Motion('../../motions/Shoot.motion')
-        self.RightShoot = Motion('../../motions/RightShoot.motion')
+        self.taiChi = Motion('../../motions/TaiChi.motion')
         self.wipeForhead = Motion('../../motions/WipeForehead.motion')
-        self.LongPass = Motion('../../motions/LongPass.motion')
-        self.StandUpFromBack = Motion('../../motions/StandUpFromBack.motion')
-        self.StandUpFromFront = Motion('../../motions/StandUpFromFront.motion')
-        self.OpenArms = Motion('../../motions/OpenArms.motion')
-        self.Shake = Motion('../../motions/ShakeHead.motion')
-        self.Run = Motion('../../motions/Run.motion')
+        self.KickBall = Motion('../../motions/KickBall.motion')
 
     def startMotion(self, motion):
         # interrupt current motion
@@ -187,6 +180,28 @@ class Nao (Robot):
             if len(self.lphalanx) > i and self.lphalanx[i] is not None:
                 self.lphalanx[i].setPosition(clampedAngle)
 
+    def printHelp(self):
+        print('----------nao_demo_python----------')
+        print('Use the keyboard to control the robots (one at a time)')
+        print('(The 3D window need to be focused)')
+        print('[Up][Down]: move one step forward/backwards')
+        print('[<-][->]: side step left/right')
+        print('[Shift] + [<-][->]: turn left/right')
+        print('[U]: print ultrasound sensors')
+        print('[A]: print accelerometers')
+        print('[G]: print gyros')
+        print('[S]: print gps')
+        print('[I]: print inertial unit (roll/pitch/yaw)')
+        print('[F]: print foot sensors')
+        print('[B]: print foot bumpers')
+        print('[Home][End]: print scaled top/bottom camera image')
+        print('[PageUp][PageDown]: open/close hands')
+        print('[7][8][9]: change all leds RGB color')
+        print('[0]: turn all leds off')
+        print('[T]: perform Tai chi movements')
+        print('[W]: wipe its forehead')
+        print('[H]: print this help message')
+
     def findAndEnableDevices(self):
         # get the time step of the current world.
         self.timeStep = int(self.getBasicTimeStep())
@@ -269,9 +284,6 @@ class Nao (Robot):
         # keyboard
         self.keyboard = self.getKeyboard()
         self.keyboard.enable(10 * self.timeStep)
-        
-      
-    
 
     def __init__(self):
         Robot.__init__(self)
@@ -280,80 +292,12 @@ class Nao (Robot):
         # initialize stuff
         self.findAndEnableDevices()
         self.loadMotionFiles()
-        self.time_step = 32
-        self.current_angle = 0
-        
-        self.yolo_model = YOLO("C:/Users/82487/Desktop/my_project2/model/yolov8n.pt")  # 使用上传的模型文件路径
-        print("YOLOv8 model loaded successfully.")
-        
-        self.camera = self.getDevice('CameraTop')
-        self.camera.enable(4 * self.timeStep)
-    
-    def get_image_from_camera(self):
-        # 获取摄像头图像
-        image = self.camera.getImage()
-        width = self.camera.getWidth()
-        height = self.camera.getHeight()
+        self.printHelp()
 
-        # 转换图像格式
-        image_array = np.frombuffer(image, np.uint8).reshape((height, width, 4))
-        image_rgb = cv2.cvtColor(image_array, cv2.COLOR_BGRA2RGB)
-        return image_rgb
-
-    def detect_objects(self):
-        image = self.get_image_from_camera()
-        resized_image = cv2.resize(image, (640, 640))
-        
-        results = self.yolo_model(resized_image)
-        print(results)
-     
-        for box in results [0].boxes:
-            # 获取类别 ID
-                class_id = int(box.cls[0])  # 类别索引
-                class_name = self.yolo_model.names[class_id]  # 类别名称
-            
-            # 检查类别是否为“sports ball”
-                if class_name == "sports ball":
-                # 获取边界框坐标
-                    x_min, y_min, x_max, y_max = box.xyxy[0]  # 边界框坐标
-                    box_width = x_max - x_min
-                    box_height = y_max - y_min
-                    x_center = (x_min + x_max) / 2  # 计算足球的中心点
-
-                print(f"Sports ball detected at center: ({x_center})")
-                
-                if self.is_close_to_ball(box_width, box_height):
-                    print("Close to the ball, stopping.")
-                    self.StandInit.play()  # 播放站立初始化动作
-                else:
-                    print("Moving forward towards the ball.")
-                    self.move_towards_ball(x_center)  # 持续前进动作
-                break
-        
-    def move_towards_ball(self, x):
-        width = self.camera.getWidth()
-
-        # 判断“sports ball”在图像的中心偏左或偏右
-        # if x < width * 0.4:  # 偏左
-            # print("Turning left")
-            # self.startMotion(self.turnLeft10)
-        # elif x > width * 0.6:  # 偏右
-            # print("Turning right")
-            # self.startMotion(self.turnRight10)
-        # else:  # 在图像中心，向前移动
-        print("Moving forward")
-        self.startMotion(self.forwards50)
-            
-    def is_close_to_ball(self, width, height):
-        # 设置一个阈值来判断是否接近足球，这个值可以根据实际情况调整
-        print(f"wh: ({width * height})")
-        size_threshold = 8000 # 假设当边界框面积大于此阈值时，表示接近足球
-        return width * height >= size_threshold
-            
     def run(self):
-        self.StandInit.setLoop(True)
-        self.StandInit.play()
-        self.currentlyPlaying = self.StandInit
+        self.handWave.setLoop(True)
+        self.handWave.play()
+        self.currentlyPlaying = self.handWave
 
         # until a key is pressed
         key = -1
@@ -372,7 +316,7 @@ class Nao (Robot):
             elif key == Keyboard.RIGHT:
                 self.startMotion(self.sideStepRight)
             elif key == Keyboard.UP:
-                self.startMotion(self.forwards50)
+                self.startMotion(self.forwards)
             elif key == Keyboard.DOWN:
                 self.startMotion(self.backwards)
             elif key == Keyboard.LEFT | Keyboard.SHIFT:
@@ -394,19 +338,11 @@ class Nao (Robot):
             elif key == ord('U'):
                 self.printUltrasoundSensors()
             elif key == ord('T'):
-                self.startMotion(self.SidePass_Right)
+                self.startMotion(self.taiChi)
             elif key == ord('W'):
                 self.startMotion(self.wipeForhead)
             elif key == ord('K'):
-                self.startMotion(self.Shoot)
-            elif key == ord('P'):
-                self.startMotion(self.LongPass)
-            elif key == ord('N'):
-                self.startMotion(self.StandUpFromBack)
-            elif key == ord('M'):
-                self.startMotion(self.StandUpFromFront)
-            elif key == ord('R'):
-                self.startMotion(self.Run)
+                self.startMotion(self.KickBall)
             elif key == Keyboard.HOME:
                 self.printCameraImage(self.cameraTop)
             elif key == Keyboard.END:
@@ -415,18 +351,6 @@ class Nao (Robot):
                 self.setHandsAngle(0.96)
             elif key == Keyboard.PAGEDOWN:
                 self.setHandsAngle(0.0)
-            elif key == ord('1'):
-                self.startMotion(self.RightShoot)
-            elif key == ord('2'):
-                self.detect_objects()
-            elif key == ord('3'):
-                self.startMotion(self.forwards)
-            elif key == ord('4'):
-                self.startMotion(self.handWave)
-            elif key == ord('5'):
-                self.startMotion(self.OpenArms)
-            elif key == ord('6'):
-                self.startMotion(self.Shake)
             elif key == ord('7'):
                 self.setAllLedsColor(0xff0000)  # red
             elif key == ord('8'):
@@ -434,7 +358,7 @@ class Nao (Robot):
             elif key == ord('9'):
                 self.setAllLedsColor(0x0000ff)  # blue
             elif key == ord('0'):
-                self.StandInit# off
+                self.setAllLedsColor(0x000000)  # off
             elif key == ord('H'):
                 self.printHelp()
 
