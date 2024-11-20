@@ -25,9 +25,11 @@ class SupervisorBase(Supervisor):
       "RED_GK"    : self.getFromDef("RED_GK"),
       "RED_DEF_L" : self.getFromDef("RED_DEF_L"),
       "RED_DEF_R" : self.getFromDef("RED_DEF_R"),
-      "RED_FW"    : self.getFromDef("RED_FW"),
+      "RED_FW_L"    : self.getFromDef("RED_FW_L"),
+      "RED_FW_R": self.getFromDef("RED_FW_R"),
       "BLUE_GK"   : self.getFromDef("BLUE_GK"),
-      "BLUE_DEF"  : self.getFromDef("BLUE_DEF"),
+      "BLUE_DEF_L": self.getFromDef("BLUE_DEF_L"),
+      "BLUE_DEF_R": self.getFromDef("BLUE_DEF_R"),
       "BLUE_FW_L" : self.getFromDef("BLUE_FW_L"),
       "BLUE_FW_R" : self.getFromDef("BLUE_FW_R")
     }
@@ -106,14 +108,17 @@ class SupervisorBase(Supervisor):
     redGk = self.getRobotPosition("RED_GK")
     redDefLeft = self.getRobotPosition("RED_DEF_L")
     redDefRight = self.getRobotPosition("RED_DEF_R")
-    redFw = self.getRobotPosition("RED_FW")
+    redFwLeft = self.getRobotPosition("RED_FW_L")
+    redFwRight = self.getRobotPosition("RED_FW_R")
     blueGk = self.getRobotPosition("BLUE_GK")
-    blueDef = self.getRobotPosition("BLUE_DEF")
+    blueDefLeft = self.getRobotPosition("BLUE_DEF_L")
+    blueDefRight = self.getRobotPosition("BLUE_DEF_R")
     blueFwLeft = self.getRobotPosition("BLUE_FW_L")
     blueFwRight = self.getRobotPosition("BLUE_FW_R")
 
-    data = struct.pack('dd9ss24d', ballPosition[0], ballPosition[1], ballOwner, ballPriority, redGk[0], redGk[1], redGk[2], redDefLeft[0], redDefLeft[1], redDefLeft[2], redDefRight[0], redDefRight[1], redDefRight[2],\
-                                  redFw[0], redFw[1], redFw[2], blueGk[0], blueGk[1], blueGk[2], blueDef[0], blueDef[1], blueDef[2], blueFwLeft[0], blueFwLeft[1], blueFwLeft[2], blueFwRight[0], blueFwRight[1], blueFwRight[2])
+    data = struct.pack('dd9ss30d', ballPosition[0], ballPosition[1], ballOwner, ballPriority, redGk[0], redGk[1], redGk[2], redDefLeft[0], redDefLeft[1], redDefLeft[2], redDefRight[0], redDefRight[1], redDefRight[2],\
+                                  redFwLeft[0], redFwLeft[1], redFwLeft[2],redFwRight[0], redFwRight[1], redFwRight[2], blueGk[0], blueGk[1], blueGk[2], blueDefLeft[0], blueDefLeft[1], blueDefLeft[2],  # 修改部分
+                               blueDefRight[0], blueDefRight[1], blueDefRight[2], blueFwLeft[0], blueFwLeft[1], blueFwLeft[2], blueFwRight[0], blueFwRight[1], blueFwRight[2])
     self.emitter.send(data)
 
   def setBallPriority(self, priority):

@@ -19,10 +19,7 @@ class DefenderRight (SoccerRobot):
 
       if self.isNewBallDataAvailable():
 
-        # Do not remove this!
-        # ----------------------
         self.getSupervisorData()
-        # ----------------------
 
         # Use the ballData (location) to do something.
         ballCoordinate = self.getBallData()
@@ -96,8 +93,6 @@ class DefenderRight (SoccerRobot):
 
         # Go to zone 15.
         if RedTeamStrategies.getZone(selfCoordinate) != 15:
-          # print("I am going to 15")
-          # Bottom line of zone 15.
           zoneTargetX = (RedTeamStrategies.PLAY_ZONE[15][0][0] + RedTeamStrategies.PLAY_ZONE[15][1][0]) / 2
           zoneTargetY = RedTeamStrategies.PLAY_ZONE[15][0][1]
           # Find the angle between the target zone and robot heading.

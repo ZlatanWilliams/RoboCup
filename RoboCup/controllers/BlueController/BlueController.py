@@ -6,7 +6,8 @@ Roles will be assigned automatically for each robot.
 
 from controller import Robot
 from BlueGoalkeeper import Goalkeeper
-from BlueDefender import Defender
+from BlueDefenderLeft import DefenderLeft
+from BlueDefenderRight import DefenderRight
 from BlueForwardLeft import ForwardLeft
 from BlueForwardRight import ForwardRight
 
@@ -18,8 +19,10 @@ robotName = robot.getName()
 # Compare the Robot Name and assign the role.
 if robotName == "BLUE_GK":
     robotController = Goalkeeper(robot)
-elif robotName == "BLUE_DEF":
-    robotController = Defender(robot)
+elif robotName == "BLUE_DEF_L":
+    robotController = DefenderLeft(robot)
+elif robotName == "BLUE_DEF_R":
+    robotController = DefenderRight(robot)
 elif robotName == "BLUE_FW_L":
     robotController = ForwardLeft(robot)
 else:

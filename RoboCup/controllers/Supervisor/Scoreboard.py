@@ -12,7 +12,7 @@ from Utils.Consts import (TIME_STEP, BALL_POSITIONS)
 
 class Scoreboard:
   def __init__(self):
-    self.initialTimeMinutes = 10
+    self.initialTimeMinutes = 5
     self.initialTimeSeconds = 0
     self.timeStepNormalizer = 0
 
