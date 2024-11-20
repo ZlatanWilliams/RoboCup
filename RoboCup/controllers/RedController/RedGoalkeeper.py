@@ -45,8 +45,7 @@ class Goalkeeper (SoccerRobot):
           # if interruptCheck:
           #   self.interruptMotion()
           # if forwardsSprintInterrupt:
-          #   self.interruptForwardsSprint()
-            # print("RedGoalkeeper - Motion interrupted!")
+          #   self.interruptForwardsSprint
           self.clearMotionQueue()
           # if interruptCheck:
           #   self.addMotionToQueue(self.motions.standInit)

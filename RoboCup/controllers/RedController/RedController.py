@@ -7,7 +7,9 @@ from controller import Robot
 from RedGoalkeeper import Goalkeeper
 from RedDefenderLeft import DefenderLeft
 from RedDefenderRight import DefenderRight
-from RedForward import Forward
+from RedForwardLeft import ForwardLeft
+from RedForwardRight import ForwardRight
+
 
 
 # Create the Robot instance.
@@ -22,8 +24,10 @@ elif robotName == "RED_DEF_L":
     robotController = DefenderLeft(robot)
 elif robotName == "RED_DEF_R":
     robotController = DefenderRight(robot)
+elif robotName == "RED_FW_L":
+    robotController = ForwardLeft(robot)
 else:
-    robotController = Forward(robot)
+    robotController = ForwardRight(robot)
 
 # Run the Robot Controller.
 robotController.run()

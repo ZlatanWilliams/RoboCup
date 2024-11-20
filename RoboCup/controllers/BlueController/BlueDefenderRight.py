@@ -12,14 +12,14 @@ from Utils import Functions
 from Utils.Consts import (TIME_STEP, Motions)
 from controller import Supervisor
 
-class Defender (SoccerRobot):
+class DefenderRight(SoccerRobot):
   def run(self):
     self.printSelf()
     count_0=0
     flag = 0
     flag1 =0
-    fixedCoordinate = [3.1, -0.00573, 0.342]
-    origin = [0.0723,-0.0798,0.0799]
+    fixedCoordinate = [3.1, 1.2, 0.342]
+    origin = [0.0723,0.5,0.0799]
     goto_Coordinate=[0,0,0]
     while self.robot.step(TIME_STEP) != -1:
 
@@ -87,7 +87,7 @@ class Defender (SoccerRobot):
 
           self.startMotion()
 
-        # Check the oponent has ball priority.
+            # Check the opponent has ball priority.
         elif self.getBallPriority() == "R":
           decidedMotion = self.motions.standInit
 
@@ -112,7 +112,7 @@ class Defender (SoccerRobot):
                 goto_Coordinate[0]=4.22
                 goto_Coordinate[1]=-0.22
                 goto_Coordinate[2]=0.315
-                decidedMotion = self.decideMotion(ballCoordinate,selfCoordinate,blue_fw_l,blue_fw_r,redFw)            # print("RedForward - decidedMotion: ", decidedMotion.Name)
+                decidedMotion = self.decideMotion(ballCoordinate,selfCoordinate,blue_fw_l,blue_fw_r,redFw)            # print("RedForward - decidedMotion:", decidedMotion.Name)
                 
                 if self.isNewMotionValid(decidedMotion):
                   boolean = self.currentlyMoving and\
@@ -245,8 +245,7 @@ class Defender (SoccerRobot):
           return self.pass_to_right(selfCoordinate, blue_fw_r)
       else:
           return self.pass_to_left(selfCoordinate, blue_fw_l)
-     
-      return self.pass_to_left(selfCoordinate, blue_fw_l)
+
       
       
   def pass_to_right(self,selfCoordinate, rightForward):

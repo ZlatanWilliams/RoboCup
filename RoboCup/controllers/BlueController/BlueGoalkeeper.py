@@ -69,7 +69,7 @@ class Goalkeeper (SoccerRobot):
 
           self.startMotion()
 
-        # Check whether the robot falls down.
+        # fall detection
         robotHeightFromGround = selfCoordinate[2]
 
         if robotHeightFromGround < 0.2:
