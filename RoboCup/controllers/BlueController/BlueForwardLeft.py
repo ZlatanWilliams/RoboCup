@@ -41,7 +41,7 @@ class ForwardLeft (SoccerRobot):
 
         # Check the goal scored to balance itself.
         if self.checkGoal() == 1:
-          decidedMotion =  self.motions.handWave
+          decidedMotion =  self.motions.standInit
 
           if self.isNewMotionValid(decidedMotion):
               boolean = self.currentlyMoving and\
@@ -160,8 +160,8 @@ class ForwardLeft (SoccerRobot):
                   self.startMotion()
                 
                 else:
-                  goto_Coordinate[0]= rightForward[0] - 1
-                  goto_Coordinate[1] = rightForward[0] - 1
+                  goto_Coordinate[0] = 1
+                  goto_Coordinate[1] = - 1
                   goto_Coordinate[2] = 0.343
                   decidedMotion, useless_flag= self.decideMotion(goto_Coordinate, selfCoordinate, post_coordinate)
                   if self.isNewMotionValid(decidedMotion):
@@ -253,21 +253,21 @@ class ForwardLeft (SoccerRobot):
     distanceFromBall = Functions.calculateDistance(ballCoordinate, selfCoordinate)
 
     if distanceFromBall < 0.22:
-      return self.motions.handWave,1
+      return self.motions.standInit,1
     turningAngle = Functions.calculateTurningAngleAccordingToRobotHeading(ballCoordinate, selfCoordinate, robotHeadingAngle)
     
     if turningAngle > 50:
       return self.motions.turnLeft60,0
     elif turningAngle > 30:
       return self.motions.turnLeft40,0
-    # elif turningAngle >= 10:
-    #   return self.motions.turnLeft10,0
+    elif turningAngle >= 10:
+      return self.motions.turnLeft10,0
     elif turningAngle < -50:
       return self.motions.turnRight60,0
     elif turningAngle < -30:
       return self.motions.turnRight40,0
-    # elif turningAngle < -20:
-    #   return self.motions.turnRight10,0
+    elif turningAngle < -20:
+      return self.motions.turnRight10,0
 
     return self.motions.forwards50,0
     

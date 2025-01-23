@@ -25,7 +25,6 @@ class DefenderRight(SoccerRobot):
 
       if self.isNewBallDataAvailable():
         self.getSupervisorData()
-        # Use the ballData (location) to do something.
         data = self.supervisorData
         ballOwner = self.getBallOwner()
         ballCoordinate = self.getBallData()
@@ -34,6 +33,8 @@ class DefenderRight(SoccerRobot):
         redFw = [data[21],data[22],data[23]]
         # Get self coordinates
         selfCoordinate = self.getSelfCoordinate()
+        distance_to_ball = Functions.calculateDistance(ballCoordinate, selfCoordinate)
+        CLOSE_DISTANCE_THRESHOLD = 1.0  # 接近球的距离阈值
 
         # Check the goal scored to balance itself.
         if self.checkGoal() == 1:
@@ -89,7 +90,7 @@ class DefenderRight(SoccerRobot):
 
             # Check the opponent has ball priority.
         elif self.getBallPriority() == "R":
-          decidedMotion = self.motions.standInit
+          decidedMotion = self.motions.turnLeft60
 
           if self.isNewMotionValid(decidedMotion):
               boolean = self.currentlyMoving and\
@@ -104,67 +105,42 @@ class DefenderRight(SoccerRobot):
           self.startMotion()
 
         #Approach the ball only in penalty area
+
         else:
           if ballCoordinate[0]>=2.54 and ballCoordinate[0]<=4.44:
-              flag=1
-              if ballCoordinate[1]>=-1.5 and ballCoordinate[1]<=1.5 and (ballOwner=='BLUE_GK' or ballOwner[0]=='R'):
-                print('going to designated coordinates')
-                goto_Coordinate[0]=4.22
-                goto_Coordinate[1]=-0.22
-                goto_Coordinate[2]=0.315
-                decidedMotion = self.decideMotion(ballCoordinate,selfCoordinate,blue_fw_l,blue_fw_r,redFw)            # print("RedForward - decidedMotion:", decidedMotion.Name)
-                
-                if self.isNewMotionValid(decidedMotion):
-                  boolean = self.currentlyMoving and\
-                        (self.currentlyMoving.name == self.motions.forwards50.name and decidedMotion.name != self.motions.forwards50.name)
-                  if boolean:
-                    self.interruptMotion()
-                  self.clearMotionQueue()
-                  if boolean:
-                    self.addMotionToQueue(self.motions.standInit)
-                  self.addMotionToQueue(decidedMotion)
-              
-                self.startMotion()
-              else:    
-                  decidedMotion = self.decideMotion(ballCoordinate,selfCoordinate,blue_fw_l,blue_fw_r,redFw)
-                  if count_0>=2:
-                    decidedMotion=self.motions.rightShoot
-                    count_0=0
-                  if decidedMotion ==  self.motions.longShoot:
-                    count_0=count_0+1
-      
-                  if self.isNewMotionValid(decidedMotion):
-                      boolean = self.currentlyMoving and\
-                            (self.currentlyMoving.name == self.motions.forwards50.name and decidedMotion.name != self.motions.forwards50.name)
-                      if boolean:
-                          self.interruptMotion()
-                      self.clearMotionQueue()
-                      if boolean:
-                          self.addMotionToQueue(self.motions.standInit)
-                      self.addMotionToQueue(decidedMotion)
-              
-                  self.startMotion()
-                      
+              flag = 1
+              distance_to_ball = Functions.calculateDistance(ballCoordinate, selfCoordinate)
+              CLOSE_DISTANCE_THRESHOLD = 0.2  # 距离阈值（单位：米）
+
+              if distance_to_ball <= CLOSE_DISTANCE_THRESHOLD:
+                  # 接近球
+                  decidedMotion = self.decideMotion(ballCoordinate, selfCoordinate, blue_fw_l, blue_fw_r, redFw)
+              else:
+                  decidedMotion = self.motions.turnLeft60
           else:
-              if (ballCoordinate[0]<=2.54 or ballCoordinate[0]>=4.44) and flag==1:
-                  flag1=0
-                  decidedMotion = self.returnMotion(fixedCoordinate,selfCoordinate)
-                  if self.isNewMotionValid(decidedMotion):
-                      boolean = self.currentlyMoving and\
-                        (self.currentlyMoving.name == self.motions.forwards50.name and decidedMotion.name != self.motions.forwards50.name)
-                      if boolean:
-                          self.interruptMotion()
-                      self.clearMotionQueue()
-                      if boolean:
-                          self.addMotionToQueue(self.motions.standInit)
-                      self.addMotionToQueue(decidedMotion)
-          
-                  self.startMotion()
-                  if (selfCoordinate[0]>=2.8 and selfCoordinate[0]<=3.2) and (selfCoordinate[1]>=-0.03 and selfCoordinate[1]<=0):
-                      flag = 0 
-                      flag1= 1  
+              # 如果球不在区域内，返回固定位置
+              decidedMotion = self.returnMotion(fixedCoordinate, selfCoordinate)
+          self.startMotion()
+          self.addMotionToQueue(decidedMotion)
+
+        if (ballCoordinate[0]<=2.54 or ballCoordinate[0]>=4.44) and flag==1:
+            flag1=0
+            decidedMotion = self.returnMotion(fixedCoordinate,selfCoordinate)
+            if self.isNewMotionValid(decidedMotion):
+                 boolean = self.currentlyMoving and\
+                    (self.currentlyMoving.name == self.motions.forwards50.name and decidedMotion.name != self.motions.forwards50.name)
+                 if boolean:
+                    self.interruptMotion()
+                    self.clearMotionQueue()
+                 if boolean:
+                    self.addMotionToQueue(self.motions.standInit)
+                    self.addMotionToQueue(decidedMotion)
+                    self.startMotion()
+            if (selfCoordinate[0]>=2.8 and selfCoordinate[0]<=3.2) and (selfCoordinate[1]>=-0.03 and selfCoordinate[1]<=0):
+                flag = 0
+                flag1= 1
                   
-              if flag1 == 1:
+                if flag1 == 1:
                   decidedMotion= self.turnMotion(origin,selfCoordinate)
                   if self.isNewMotionValid(decidedMotion):
                       boolean = self.currentlyMoving and\
@@ -200,7 +176,7 @@ class DefenderRight(SoccerRobot):
     if distanceFromBall < 0.22:
       return self.passBall(selfCoordinate,blue_fw_l,blue_fw_r,redFw)
 
-    return self.motions.forwards50
+    return self.motions.standInits
     pass
     
   def returnMotion(self, ballCoordinate, selfCoordinate):

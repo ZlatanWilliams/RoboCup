@@ -9,7 +9,7 @@ from BlueGoalkeeper import Goalkeeper
 from BlueDefenderLeft import DefenderLeft
 from BlueDefenderRight import DefenderRight
 from BlueForwardLeft import ForwardLeft
-from BlueForwardRight import ForwardRight
+
 
 # Create the Robot instance.
 robot = Robot()
@@ -23,10 +23,8 @@ elif robotName == "BLUE_DEF_L":
     robotController = DefenderLeft(robot)
 elif robotName == "BLUE_DEF_R":
     robotController = DefenderRight(robot)
-elif robotName == "BLUE_FW_L":
-    robotController = ForwardLeft(robot)
-else:
-    robotController = ForwardRight(robot)
+else : robotController = ForwardLeft(robot)
+
 
 # Run the Robot Controller.
 robotController.run()

@@ -1,104 +1,257 @@
 """
-Blue Team Left Defender robot behaviours.
+Blue Team Defender robot behaviours.
 """
 
-import os
-import sys
-
-# Add the parent directory to the path
-current_dir = os.path.dirname(os.path.realpath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.append(parent_dir)
+import os, sys
+currentdir = os.path.dirname(os.path.realpath(__file__))
+parentdir = os.path.dirname(currentdir)
+sys.path.append(parentdir)
 
 from Base.SoccerRobotBase import SoccerRobot
 from Utils import Functions
-from Utils.Consts import TIME_STEP, Motions
-
+from Utils.Consts import (TIME_STEP, Motions)
+from controller import Supervisor
 
 class DefenderLeft(SoccerRobot):
-    def run(self):
-        self.printSelf()
-        count_0 = 0
-        flag = 0
-        flag1 = 0
-        fixedCoordinate = [3.1, -1.2, 0.342]  # 固定的左侧区域位置
-        origin = [0.0723, -0.5, 0.0799]  # 起始点的坐标
-        goto_Coordinate = [0, 0, 0]
+  def run(self):
+    self.printSelf()
+    count_0=0
+    flag = 0
+    flag1 =0
+    fixedCoordinate = [3.1, -1.2, 0.342]
+    origin = [0.0723,0.5,0.0799]
+    goto_Coordinate=[0,0,0]
+    while self.robot.step(TIME_STEP) != -1:
 
-        while self.robot.step(TIME_STEP) != -1:
-            if self.isNewBallDataAvailable():
-                self.getSupervisorData()
-                # Use the ballData (location) to do something.
-                data = self.supervisorData
-                ballOwner = self.getBallOwner()
-                ballCoordinate = self.getBallData()
-                blue_fw_l = [data[30], data[31], data[32]]
-                blue_fw_r = [data[33], data[34], data[35]]
-                redFw = [data[21], data[22], data[23]]
-                selfCoordinate = self.getSelfCoordinate()
+      if self.isNewBallDataAvailable():
+        self.getSupervisorData()
+        data = self.supervisorData
+        ballOwner = self.getBallOwner()
+        ballCoordinate = self.getBallData()
+        blue_fw_l = [data[30],data[31],data[32]]
+        blue_fw_r = [data[33],data[34],data[35]]
+        redFw = [data[21],data[22],data[23]]
+        # Get self coordinates
+        selfCoordinate = self.getSelfCoordinate()
+        distance_to_ball = Functions.calculateDistance(ballCoordinate, selfCoordinate)
+        CLOSE_DISTANCE_THRESHOLD = 1.0  # 接近球的距离阈值
 
-                # Check if goal was scored
-                if self.checkGoal() == 1:
-                    self.perform_motion(self.motions.handWave)
-                elif self.checkGoal() == -1:
-                    self.perform_motion(self.motions.standInit)
-                elif self._robot_fell_down(selfCoordinate):
-                    self._handle_robot_fall()
-                elif self.getBallPriority() == "R":
-                    self.perform_motion(self.motions.standInit)
-                else:
-                    if ballCoordinate[0] >= 2.54 and ballCoordinate[0] <= 4.44:
-                        flag = 1
-                        if -1.5 <= ballCoordinate[1] <= 0 and (ballOwner == 'BLUE_GK' or ballOwner[0] == 'R'):
-                            goto_Coordinate = [4.22, -0.22, 0.315]
-                            decidedMotion = self.decideMotion(ballCoordinate, selfCoordinate, blue_fw_l, blue_fw_r, redFw)
-                            self._perform_motion(decidedMotion)
-                        else:
-                            decidedMotion = self.decideMotion(ballCoordinate, selfCoordinate, blue_fw_l, blue_fw_r, redFw)
-                            if count_0 >= 2:
-                                decidedMotion = self.motions.rightShoot
-                                count_0 = 0
-                            if decidedMotion == self.motions.longShoot:
-                                count_0 += 1
-                            self._perform_motion(decidedMotion)
-                    else:
-                        if (ballCoordinate[0] <= 2.54 or ballCoordinate[0] >= 4.44) and flag == 1:
-                            flag1 = 0
-                            decidedMotion = self.returnMotion(fixedCoordinate, selfCoordinate)
-                            self._perform_motion(decidedMotion)
-                            if 2.8 <= selfCoordinate[0] <= 3.2 and -1.0 <= selfCoordinate[1] <= -0.03:
-                                flag = 0
-                                flag1 = 1
-                        if flag1 == 1:
-                            decidedMotion = self.turnMotion(origin, selfCoordinate)
-                            self._perform_motion(decidedMotion)
+        # Check the goal scored to balance itself.
+        if self.checkGoal() == 1:
+          decidedMotion =  self.motions.handWave
 
-            else:
-                print("NO BALL DATA!!!")
+          if self.isNewMotionValid(decidedMotion):
+              boolean = self.currentlyMoving and\
+                  (self.currentlyMoving.name == self.motions.forwards50.name and decidedMotion.name != self.motions.forwards50.name)
+              if boolean:
+                  self.interruptMotion()
+              self.clearMotionQueue()
+              if boolean:
+                  self.addMotionToQueue(self.motions.standInit)
+              self.addMotionToQueue(decidedMotion)
 
-    def _robot_fell_down(self, selfCoordinate):
-        """Check if the robot fell down."""
-        return selfCoordinate[2] < 0.2
+          self.startMotion()
 
-    def _handle_robot_fall(self):
-        """Handle robot recovery after a fall."""
-        if self.getLeftSonarValue() == 2.55 and self.getRightSonarValue() == 2.55:
+        elif self.checkGoal() == -1:
+          decidedMotion =  self.motions.standInit
+
+          if self.isNewMotionValid(decidedMotion):
+              boolean = self.currentlyMoving and\
+                  (self.currentlyMoving.name == self.motions.forwards50.name and decidedMotion.name != self.motions.forwards50.name)
+              if boolean:
+                  self.interruptMotion()
+              self.clearMotionQueue()
+              if boolean:
+                  self.addMotionToQueue(self.motions.standInit)
+              self.addMotionToQueue(decidedMotion)
+
+          self.startMotion()
+
+        # Check whether the robot falls down.
+        robotHeightFromGround = selfCoordinate[2]
+
+        if robotHeightFromGround < 0.2:
+          if self.getLeftSonarValue() == 2.55 and self.getRightSonarValue() == 2.55:
             decidedMotion = self.motions.standUpFromBack
-        else:
+          else:
             decidedMotion = self.motions.standUpFromFront
-        self._perform_motion(decidedMotion)
 
-    def _perform_motion(self, decidedMotion):
-        """Perform a given motion if valid."""
-        if self.isNewMotionValid(decidedMotion):
-            boolean = self.currentlyMoving and (
-                self.currentlyMoving.name == self.motions.forwards50.name and decidedMotion.name != self.motions.forwards50.name
-            )
-            if boolean:
-                self.interruptMotion()
-            self.clearMotionQueue()
-            if boolean:
-                self.addMotionToQueue(self.motions.standInit)
-            self.addMotionToQueue(decidedMotion)
+          if self.isNewMotionValid(decidedMotion):
+              boolean = self.currentlyMoving and\
+                  (self.currentlyMoving.name == self.motions.forwards50.name and decidedMotion.name != self.motions.forwards50.name)
+              if boolean:
+                  self.interruptMotion()
+              self.clearMotionQueue()
+              if boolean:
+                  self.addMotionToQueue(self.motions.standInit)
+              self.addMotionToQueue(decidedMotion)
 
-        self.startMotion()
+          self.startMotion()
+
+            # Check the opponent has ball priority.
+        elif self.getBallPriority() == "R":
+          decidedMotion = self.motions.turnLeft60
+
+          if self.isNewMotionValid(decidedMotion):
+              boolean = self.currentlyMoving and\
+                  (self.currentlyMoving.name == self.motions.forwards50.name and decidedMotion.name != self.motions.forwards50.name)
+              if boolean:
+                  self.interruptMotion()
+              self.clearMotionQueue()
+              if boolean:
+                  self.addMotionToQueue(self.motions.standInit)
+              self.addMotionToQueue(decidedMotion)
+
+          self.startMotion()
+
+        #Approach the ball only in penalty area
+
+        else:
+          if ballCoordinate[0]>=2.54 and ballCoordinate[0]<=4.44:
+              flag = 1
+              distance_to_ball = Functions.calculateDistance(ballCoordinate, selfCoordinate)
+              CLOSE_DISTANCE_THRESHOLD = 0.5  # 距离阈值（单位：米）
+
+              if distance_to_ball <= CLOSE_DISTANCE_THRESHOLD:
+
+                  decidedMotion = self.decideMotion(ballCoordinate, selfCoordinate, blue_fw_l, blue_fw_r, redFw)
+              else:
+                  decidedMotion = self.motions.turnLeft60
+          else:
+              # 如果球不在区域内，返回固定位置
+              decidedMotion = self.returnMotion(fixedCoordinate, selfCoordinate)
+          self.startMotion()
+          self.addMotionToQueue(decidedMotion)
+
+        if (ballCoordinate[0]<=2.54 or ballCoordinate[0]>=4.44) and flag==1:
+            flag1=0
+            decidedMotion = self.returnMotion(fixedCoordinate,selfCoordinate)
+            if self.isNewMotionValid(decidedMotion):
+                 boolean = self.currentlyMoving and\
+                    (self.currentlyMoving.name == self.motions.forwards50.name and decidedMotion.name != self.motions.forwards50.name)
+                 if boolean:
+                    self.interruptMotion()
+                    self.clearMotionQueue()
+                 if boolean:
+                    self.addMotionToQueue(self.motions.standInit)
+                    self.addMotionToQueue(decidedMotion)
+                    self.startMotion()
+            if (selfCoordinate[0]>=2.8 and selfCoordinate[0]<=3.2) and (selfCoordinate[1]>=-0.03 and selfCoordinate[1]<=0):
+                flag = 0
+                flag1= 1
+
+                if flag1 == 1:
+                  decidedMotion= self.turnMotion(origin,selfCoordinate)
+                  if self.isNewMotionValid(decidedMotion):
+                      boolean = self.currentlyMoving and\
+                        (self.currentlyMoving.name == self.motions.forwards50.name and decidedMotion.name != self.motions.forwards50.name)
+                      if boolean:
+                          self.interruptMotion()
+                      self.clearMotionQueue()
+                      if boolean:
+                          self.addMotionToQueue(self.motions.standInit)
+                      self.addMotionToQueue(decidedMotion)
+
+                  self.startMotion()
+
+      else:
+
+        print("NO BALL DATA!!!")
+
+  def decideMotion(self, ballCoordinate, selfCoordinate,blue_fw_l,blue_fw_r,redFw):
+    robotHeadingAngle = self.getRollPitchYaw()[2]
+    turningAngle = Functions.calculateTurningAngleAccordingToRobotHeading(ballCoordinate, selfCoordinate, robotHeadingAngle)
+
+    if turningAngle > 50:
+      return self.motions.turnLeft60
+    elif turningAngle > 30:
+      return self.motions.turnLeft40
+    elif turningAngle < -50:
+      return self.motions.turnRight60
+    elif turningAngle < -30:
+      return self.motions.turnRight40
+
+    distanceFromBall = Functions.calculateDistance(ballCoordinate, selfCoordinate)
+
+    if distanceFromBall < 0.22:
+      return self.passBall(selfCoordinate,blue_fw_l,blue_fw_r,redFw)
+
+    return self.motions.standInit
+    pass
+
+  def returnMotion(self, ballCoordinate, selfCoordinate):
+    robotHeadingAngle = self.getRollPitchYaw()[2]
+    turningAngle = Functions.calculateTurningAngleAccordingToRobotHeading(ballCoordinate, selfCoordinate, robotHeadingAngle)
+
+    if turningAngle > 90:
+      return self.motions.turnLeft180
+    elif turningAngle > 50:
+      return self.motions.turnLeft60
+    elif turningAngle > 30:
+      return self.motions.turnLeft40
+    elif turningAngle < -50:
+      return self.motions.turnRight60
+    elif turningAngle < -30:
+      return self.motions.turnRight40
+
+    return self.motions.forwards50
+    pass
+
+  def turnMotion(self, ballCoordinate, selfCoordinate):
+    robotHeadingAngle = self.getRollPitchYaw()[2]
+    turningAngle = Functions.calculateTurningAngleAccordingToRobotHeading(ballCoordinate, selfCoordinate, robotHeadingAngle)
+
+    if turningAngle > 90:
+      return self.motions.turnLeft180
+    elif turningAngle > 50:
+      return self.motions.turnLeft60
+    elif turningAngle > 30:
+      return self.motions.turnLeft40
+    elif turningAngle < -50:
+      return self.motions.turnRight60
+    elif turningAngle < -30:
+      return self.motions.turnRight40
+
+    return self.motions.standInit
+    pass
+
+
+  def passBall(self, selfCoordinate, blue_fw_l, blue_fw_r, redFw):
+      if ((redFw[0] >=(blue_fw_l[0]-0.5) and redFw[0] < blue_fw_l[0]) or (redFw[1] >= (blue_fw_l[1]-0.45) and redFw[1] < blue_fw_l[1]) or (redFw[0] <=(blue_fw_l[0]+0.5) and redFw[0] > blue_fw_l[0]) or (redFw[1] <= (blue_fw_l[1]+0.45) and redFw[1] > blue_fw_l[1])):
+          return self.pass_to_right(selfCoordinate, blue_fw_r)
+      else:
+          return self.pass_to_left(selfCoordinate, blue_fw_l)
+
+
+
+  def pass_to_right(self,selfCoordinate, rightForward):
+    robotHeadingAngle = self.getRollPitchYaw()[2]
+    turningAngle = Functions.calculateTurningAngleAccordingToRobotHeading(rightForward, selfCoordinate, robotHeadingAngle)
+    if turningAngle > 90:
+      return self.motions.rightSidePass
+    elif turningAngle > 50:
+      return self.motions.rightSidePass
+    elif turningAngle > 30:
+      return self.motions.rightSidePass
+    elif turningAngle <-50:
+      return self.motions.leftSidePass
+    elif turningAngle <-30:
+      return self.motions.leftSidePass
+    else:
+      return self.motions.longShoot
+
+  def pass_to_left(self,selfCoordinate, leftForward):
+    robotHeadingAngle = self.getRollPitchYaw()[2]
+    turningAngle = Functions.calculateTurningAngleAccordingToRobotHeading(leftForward, selfCoordinate, robotHeadingAngle)
+    if turningAngle > 90:
+      return self.motions.rightSidePass
+    elif turningAngle > 50:
+      return self.motions.rightSidePass
+    elif turningAngle > 30:
+      return self.motions.rightSidePass
+    elif turningAngle <-50:
+      return self.motions.leftSidePass
+    elif turningAngle <-30:
+      return self.motions.leftSidePass
+    else:
+      return self.motions.longShoot
