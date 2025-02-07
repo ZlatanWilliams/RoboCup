@@ -116,7 +116,7 @@ class SoccerRobot(ABC):
     """Get the latest supervisor data.
     """
     message = self.receiver.getBytes()
-    self.supervisorData = struct.unpack('dd9cc30d', message)
+    self.supervisorData = struct.unpack('dd9cc24d', message)
     self.receiver.nextPacket()
 
   def getBallData(self) -> list:
