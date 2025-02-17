@@ -64,24 +64,24 @@ class GameEngine:
         
 
     def _render(self, pitch, teams, ball):
-        self.screen.fill((44, 92, 52))
-        self._draw_pitch(pitch)
+        pitch.draw(self.screen)  # ✅ Use the full pitch rendering
+
         for team in teams.values():
             for player in team:
-                pos = self._scale_position(player.position)
+                pos = self._scale_position(player.position, pitch)
                 color = (0, 0, 255) if player.team == 'home' else (255, 0, 0)
                 pygame.draw.circle(self.screen, color, pos, 20)
                 font = pygame.font.Font(None, 24)
                 text = font.render(player.role[0].upper(), True, (255, 255, 255))
                 self.screen.blit(text, (pos[0] - 8, pos[1] - 10))
-        ball_pos = self._scale_position(ball.position)
+        ball_pos = self._scale_position(ball.position, pitch)
         pygame.draw.circle(self.screen, (139, 69, 19), ball_pos, int(ball.radius * self.scale_x))
         pygame.display.flip()
 
-    def _scale_position(self, pos):
-        x = (pos[0] + 4.5) * self.scale_x
-        y = (3.0 - pos[1]) * self.scale_y
-        return int(x), int(y)
+    def _scale_position(self, pos, pitch):
+        """Converts field coordinates (meters) to screen coordinates (pixels)."""
+        return pitch.to_screen_coords(pos[0], pos[1])  # ✅ Use `Pitch` method
+
 
     def _draw_pitch(self, pitch):
         pygame.draw.line(self.screen, (255, 255, 255),

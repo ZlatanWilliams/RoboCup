@@ -7,7 +7,7 @@ class Ball:
         self.velocity = np.array([0.0, 0.0], dtype=float)
         
         self.radius = 0.1  # meters
-        self.color = (255, 255, 0)
+        self.color = (255, 255, 255)
         self.panel_color = (0, 0, 0)
         
         self.mass = 0.45
@@ -19,7 +19,7 @@ class Ball:
     def update(self, dt, pitch_width, pitch_length):
         """Update ball position based on physics"""
         # Update position based on velocity
-        print(f"Debug: dt = {dt}, type(dt) = {type(dt)}") 
+        # print(f"Debug: dt = {dt}, type(dt) = {type(dt)}") 
 
         if not isinstance(dt, (float, int)):
             raise TypeError(f"Invalid dt type: {type(dt)}. Expected float or int.")

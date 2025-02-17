@@ -24,7 +24,6 @@ class Pitch:
         self.center_circle_radius = self.center_circle_diameter / 2
         
         # Display settings
-        self.SCALE = 80  # pixels per meter
         self.LINE_THICKNESS = 2
         
         # Colors
@@ -32,145 +31,130 @@ class Pitch:
         self.LINE_COLOR = (255, 255, 255)  # White
         self.GOAL_COLOR = (102, 102, 102)  # Gray
 
-        # Calculate window dimensions including border strips
-        self.total_width = (self.width + 2 * self.border_strip_width) * self.SCALE
-        self.total_length = (self.length + 2 * self.border_strip_width) * self.SCALE
+        # Screen dimensions and scaling
+        self.SCREEN_WIDTH = 1280
+        self.SCREEN_HEIGHT = 720
+        
+        # Calculate scaling to maintain aspect ratio
+        width_scale = (self.SCREEN_WIDTH - 100) / self.length  # Leave some margin
+        height_scale = (self.SCREEN_HEIGHT - 100) / self.width
+        self.SCALE = min(width_scale, height_scale)  # Use the smaller scale to fit both dimensions
+        
+        # Calculate centered position
+        self.offset_x = (self.SCREEN_WIDTH - (self.length * self.SCALE)) / 2
+        self.offset_y = (self.SCREEN_HEIGHT - (self.width * self.SCALE)) / 2
 
     def initialize_display(self):
-        self.screen = pygame.display.set_mode((int(self.total_length), int(self.total_width)))
+        self.screen = pygame.display.set_mode((self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
         pygame.display.set_caption("NAO Robot Football Pitch")
         return self.screen
 
     def to_screen_coords(self, x, y):
-        screen_x = (x + self.length/2 + self.border_strip_width) * self.SCALE
-        screen_y = (y + self.width/2 + self.border_strip_width) * self.SCALE
+        """Convert field coordinates (meters) to screen coordinates (pixels)."""
+        screen_x = self.offset_x + (x + self.length/2) * self.SCALE
+        screen_y = self.offset_y + (self.width/2 - y) * self.SCALE
         return int(screen_x), int(screen_y)
 
     def draw(self, screen, players=None, ball=None):
+        """Draws the pitch, goals, and objects."""
         screen.fill(self.GRASS_COLOR)
         
-        self._draw_border(screen)
+        # Draw all pitch elements
         self._draw_main_pitch(screen)
-        self._draw_goals(screen)
         self._draw_field_markings(screen)
+        self._draw_goals(screen)
         
         if ball:
             self._draw_ball(screen, ball)
-            
+        
         if players:
             self._draw_players(screen, players)
 
-    def _draw_border(self, screen):
-        pygame.draw.rect(screen, self.GRASS_COLOR, (0, 0, self.total_length, self.total_width))
-        
     def _draw_main_pitch(self, screen):
-        start_x, start_y = self.to_screen_coords(-self.length/2, -self.width/2)
-        rect_width = self.length * self.SCALE
-        rect_height = self.width * self.SCALE
-        pygame.draw.rect(screen, self.LINE_COLOR, 
-                        (start_x, start_y, rect_width, rect_height), 
+        """Draws the main pitch rectangle."""
+        start_x, start_y = self.to_screen_coords(-self.length/2, self.width/2)
+        end_x, end_y = self.to_screen_coords(self.length/2, -self.width/2)
+        
+        pygame.draw.rect(screen, self.LINE_COLOR,
+                        (start_x, start_y, 
+                         end_x - start_x, end_y - start_y),
                         self.LINE_THICKNESS)
 
     def _draw_goals(self, screen):
-
-        right_x, right_y = self.to_screen_coords(self.length/2, -self.goal_width/2)
+        """Draws both goals."""
+        # Left goal
+        left_x, left_y = self.to_screen_coords(-self.length/2 - self.goal_depth, self.goal_width/2)
+        goal_width_pixels = self.goal_depth * self.SCALE
+        goal_height_pixels = self.goal_width * self.SCALE
         pygame.draw.rect(screen, self.GOAL_COLOR,
-                        (right_x, right_y,
-                         self.goal_depth * self.SCALE,
-                         self.goal_width * self.SCALE))
+                        (left_x, left_y, goal_width_pixels, goal_height_pixels))
         
-
-        left_x, left_y = self.to_screen_coords(-self.length/2 - self.goal_depth, -self.goal_width/2)
+        # Right goal
+        right_x, right_y = self.to_screen_coords(self.length/2, self.goal_width/2)
         pygame.draw.rect(screen, self.GOAL_COLOR,
-                        (left_x, left_y,
-                         self.goal_depth * self.SCALE,
-                         self.goal_width * self.SCALE))
+                        (right_x, right_y, goal_width_pixels, goal_height_pixels))
 
     def _draw_field_markings(self, screen):
-
-        self._draw_center_circle(screen)
-        self._draw_goal_areas(screen)
-        self._draw_penalty_areas(screen)
-        self._draw_penalty_marks(screen)
-        self._draw_halfway_line(screen)
-
-    def _draw_center_circle(self, screen):
-
+        # Center line
+        start_x, start_y = self.to_screen_coords(0, self.width/2)
+        end_x, end_y = self.to_screen_coords(0, -self.width/2)
+        pygame.draw.line(screen, self.LINE_COLOR, (start_x, start_y), (end_x, end_y), self.LINE_THICKNESS)
+        
+        # Center circle
         center_x, center_y = self.to_screen_coords(0, 0)
         radius = int(self.center_circle_radius * self.SCALE)
         pygame.draw.circle(screen, self.LINE_COLOR, (center_x, center_y), radius, self.LINE_THICKNESS)
+        
+        # Center dot
         pygame.draw.circle(screen, self.LINE_COLOR, (center_x, center_y), 3)
-
-    def _draw_goal_areas(self, screen):
-
-        right_x, right_y = self.to_screen_coords(self.length/2 - self.goal_area_length, -self.goal_area_width/2)
-        pygame.draw.rect(screen, self.LINE_COLOR,
-                        (right_x, right_y,
-                         self.goal_area_length * self.SCALE,
-                         self.goal_area_width * self.SCALE),
-                        self.LINE_THICKNESS)
         
-
-        left_x, left_y = self.to_screen_coords(-self.length/2, -self.goal_area_width/2)
-        pygame.draw.rect(screen, self.LINE_COLOR,
-                        (left_x, left_y,
-                         self.goal_area_length * self.SCALE,
-                         self.goal_area_width * self.SCALE),
-                        self.LINE_THICKNESS)
-
-    def _draw_penalty_areas(self, screen):
-
-        right_x, right_y = self.to_screen_coords(self.length/2 - self.penalty_area_length, -self.penalty_area_width/2)
-        pygame.draw.rect(screen, self.LINE_COLOR,
-                        (right_x, right_y,
-                         self.penalty_area_length * self.SCALE,
-                         self.penalty_area_width * self.SCALE),
-                        self.LINE_THICKNESS)
+        # Goal areas
+        for side in [-1, 1]:  # Left and right sides
+            x = side * self.length/2
+            if side == -1:
+                x_offset = 0
+            else:
+                x_offset = -self.goal_area_length
+                
+            start_x, start_y = self.to_screen_coords(x + x_offset, self.goal_area_width/2)
+            rect_width = self.goal_area_length * self.SCALE
+            rect_height = self.goal_area_width * self.SCALE
+            pygame.draw.rect(screen, self.LINE_COLOR,
+                           (start_x, start_y, rect_width, rect_height),
+                           self.LINE_THICKNESS)
         
-
-        left_x, left_y = self.to_screen_coords(-self.length/2, -self.penalty_area_width/2)
-        pygame.draw.rect(screen, self.LINE_COLOR,
-                        (left_x, left_y,
-                         self.penalty_area_length * self.SCALE,
-                         self.penalty_area_width * self.SCALE),
-                        self.LINE_THICKNESS)
-
-    def _draw_penalty_marks(self, screen):
-
-        right_x, right_y = self.to_screen_coords(self.length/2 - self.penalty_mark_distance, 0)
-        pygame.draw.circle(screen, self.LINE_COLOR, (right_x, right_y), 3)
+        # Penalty areas
+        for side in [-1, 1]:  # Left and right sides
+            x = side * self.length/2
+            if side == -1:
+                x_offset = 0
+            else:
+                x_offset = -self.penalty_area_length
+                
+            start_x, start_y = self.to_screen_coords(x + x_offset, self.penalty_area_width/2)
+            rect_width = self.penalty_area_length * self.SCALE
+            rect_height = self.penalty_area_width * self.SCALE
+            pygame.draw.rect(screen, self.LINE_COLOR,
+                           (start_x, start_y, rect_width, rect_height),
+                           self.LINE_THICKNESS)
         
-
-        left_x, left_y = self.to_screen_coords(-self.length/2 + self.penalty_mark_distance, 0)
-        pygame.draw.circle(screen, self.LINE_COLOR, (left_x, left_y), 3)
-
-    def _draw_halfway_line(self, screen):
-
-        top_x, top_y = self.to_screen_coords(0, -self.width/2)
-        bottom_x, bottom_y = self.to_screen_coords(0, self.width/2)
-        pygame.draw.line(screen, self.LINE_COLOR, 
-                        (top_x, top_y), 
-                        (bottom_x, bottom_y), 
-                        self.LINE_THICKNESS)
+        # Penalty marks
+        for side in [-1, 1]:
+            x = side * (self.length/2 - self.penalty_mark_distance)
+            mark_x, mark_y = self.to_screen_coords(x, 0)
+            pygame.draw.circle(screen, self.LINE_COLOR, (mark_x, mark_y), 3)
 
     def _draw_ball(self, screen, ball):
-
         ball_x, ball_y = self.to_screen_coords(ball.position[0], ball.position[1])
-        pygame.draw.circle(screen, ball.color, (ball_x, ball_y), 
-                         int(ball.radius * self.SCALE))
+        pygame.draw.circle(screen, (255, 255, 255), (ball_x, ball_y), int(ball.radius * self.SCALE))
 
     def _draw_players(self, screen, players):
-
         for player in players:
             props = player.get_visual_properties()
             pos_x, pos_y = self.to_screen_coords(props['position'][0], props['position'][1])
             
-
-            pygame.draw.circle(screen, props['color'], 
-                             (pos_x, pos_y), 
-                             int(props['size'] * self.SCALE))
+            pygame.draw.circle(screen, props['color'], (pos_x, pos_y), int(props['size'] * self.SCALE))
             
-
             font = pygame.font.Font(None, 24)
             text = font.render(props['label'], True, self.LINE_COLOR)
             text_rect = text.get_rect(center=(pos_x, pos_y - 20))

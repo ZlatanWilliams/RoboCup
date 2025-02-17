@@ -10,16 +10,16 @@ def main():
     clock = pygame.time.Clock()
     
     pitch = Pitch()
-    screen = pitch.initialize_display()
-    
+    screen = pitch.initialize_display()  # ✅ Keep this
+
     # ✅ Instead of creating players manually, use `Team` class
     home_team = Team('home')  # Initializes all home players
     away_team = Team('away')  # Initializes all away players
 
     ball = Ball()
     engine = GameEngine()
-    
-    # ✅ Pass the teams directly to the game engine
+
+    # ✅ Pass the pitch, not the screen
     engine.run(pitch, {"home": home_team.players, "away": away_team.players}, ball)
 
 if __name__ == "__main__":

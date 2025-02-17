@@ -110,7 +110,7 @@ class PossessionState(FSMState):
             else:
                 seek(self.player, self.player.opponent_goal)
         else:
-            seek(self.player, self.team_goal)  # Default behavior for other roles
+            seek(self.player, self.player.team_goal)  # Default behavior for other roles
 
 # ---------------------- Player FSM Implementation ----------------------
 class PlayerFSM:
@@ -178,12 +178,11 @@ class Player:
 
 
 # Example Usage
-if __name__ == "__main__":
-    striker = Player('left', 'striker', (-1.0, 0))
-    midfielder = Player('left', 'midfielder', (-2.0, 0))
-    striker.teammates.append(midfielder)
-    striker.has_ball = True
-    
-    for _ in range(10):
-        striker.update()
+# if __name__ == "__main__":
+#     striker = Player('right', 'defender', (-1.0, 0))
+#     midfielder = Player('left', 'midfielder', (-2.0, 0))
+#     striker.teammates.append(midfielder)
+#     striker.has_ball = True
+#     for _ in range(10):
+#         striker.update()
 
